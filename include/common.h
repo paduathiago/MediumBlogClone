@@ -1,6 +1,14 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <pthread.h>
+
 struct BlogOperation {
     int client_id;
     int operation_type;
@@ -17,5 +25,6 @@ struct BlogOperation {
 # define DISCONNECT 5
 
 void server_sockaddr_init(char *protocol, char * addr, struct sockaddr_storage *storage);
+size_t receive_all(int socket, void *buffer, size_t size);
 
 #endif
