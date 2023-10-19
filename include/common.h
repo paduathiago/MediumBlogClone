@@ -1,3 +1,6 @@
+#ifndef COMMON_H
+#define COMMON_H
+
 struct BlogOperation {
     int client_id;
     int operation_type;
@@ -13,3 +16,6 @@ struct BlogOperation {
 # define SUBSCRIBE 4
 # define DISCONNECT 5
 
+void server_sockaddr_init(char *protocol, char * addr, struct sockaddr_storage *storage);
+
+#endif
