@@ -6,7 +6,39 @@ struct client_data
     int client_sock;
 };
 
-//struct BlogOperation process_client_op();
+struct BlogOperation process_client_op(struct BlogOperation op_received)
+{
+    struct BlogOperation op_sent;
+    op_sent.client_id = op_received.client_id;
+    op_sent.operation_type = op_received.operation_type;
+    op_sent.server_response = 1;
+
+    switch (op_received.operation_type)
+    {
+        case NEW_CONNECION:
+            printf("client %d connected\n", op_received.client_id);  // In cases where id < 10, is it necessary to add a zero before the id?
+            op_sent.client_id = op_received.client_id;
+            strcpy(op_sent.topic, "");
+            strcpy(op_sent.content, "");
+            break;
+        
+        case NEW_POST:
+            printf("new post added in %s by %d\n", op_received.topic, op_received.client_id);
+            break;
+        
+        case SUBSCRIBE:
+            printf("client %d subscribed to %s\n", op_received.client_id, op_received.topic);
+            strcpy(op_sent.topic, op_received.topic);
+            strcpy(op_sent.content, "");
+            break;
+
+        case LIST_TOPICS:
+            break;
+        
+        // case DISCONNECT?
+    }
+    return op_sent;
+}
 
 void *client_thread(void *data)
 {
@@ -15,8 +47,6 @@ void *client_thread(void *data)
     int client_sock = client_data->client_sock;
 
     struct BlogOperation op_received, op_sent;
-    
-    printf("client %d connected\n", client_id);
     
     while(1)
     {
@@ -71,7 +101,7 @@ int main(int argc, char *argv[])
         client_data->client_id = client_id;
         client_data->client_sock = client_sock;
         
-        client_id++;
+        client_id++;  // REVIEW: How to handle client_id when one of the clients disconnect?
 
         pthread_t thread;
         pthread_create(&thread, NULL, client_thread, (void *)client_data);
