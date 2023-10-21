@@ -1,6 +1,47 @@
 #include "common.h"
 #include "server.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+
+void init_client_array(struct client_data *data, int size)
+{
+    int i;
+    for(i = 0; i < size; i++)
+    {
+        data[i].id = 0;
+        data[i].sock = 0;
+    }
+}
+
+void insert_client(struct client_data *client_data, struct client_data *clients)
+{
+    int i;
+    for(i = 0; i < NUM_CLIENTS; i++)
+    {
+        if(clients[i].id == 0)
+        {
+            client_data->id = i + 1;
+            clients[i].id = client_data->id;
+            clients[i].sock = client_data->sock;
+            break;
+        }
+    }
+}
+
+struct topic_data *create_topic(char *topic_name)
+{
+    struct topic_data *new_topic = malloc(sizeof(struct topic_data));
+    strcpy(new_topic->name, topic_name);
+    init_client_array(new_topic->subscribers, NUM_CLIENTS);
+    new_topic->subs_count = 0;
+    return new_topic;
+}
+
 struct BlogOperation process_client_op(struct BlogOperation op_received, struct server_data *s_data)
 {
     struct BlogOperation op_sent;
@@ -13,6 +54,7 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
     switch (op_received.operation_type)
     {
         case NEW_CONNECION:
+            
             printf("client %d connected\n", op_received.client_id);  // In cases where id < 10, is it necessary to add a zero before the id?
             op_sent.client_id = op_received.client_id;
             break;
@@ -48,7 +90,7 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
             break;
         
         case SUBSCRIBE:  // Treat the case where the client is already subscribed to the topic
-            int found_topic = 0;
+            found_topic = 0;
             for(int i = 0; i < s_data->topics_count; i++)
             {
                 if(strcmp(s_data->topics[i].name, op_received.topic) == 0)
@@ -114,19 +156,13 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
     return op_sent;
 }
 
-struct topic_data *create_topic(char *topic_name)
-{
-    struct topic_data *new_topic = malloc(sizeof(struct topic_data));
-    strcpy(new_topic->name, topic_name);
-    init_client_array(new_topic->subscribers, NUM_CLIENTS);
-    new_topic->subs_count = 0;
-    return new_topic;
-}
-
 void *client_thread(void *data)
 {
     struct thread_info *t_data = (struct thread_info *)data;
-    int client_sock = t_data->client_data->sock;
+    printf("%d\n", t_data->client_data.sock);
+    printf("checkpoint \n");
+    
+    int client_sock = t_data->client_data.sock;
 
     struct BlogOperation op_received, op_sent;
     
@@ -141,7 +177,7 @@ void *client_thread(void *data)
             break;
         }
 
-        op_sent = process_client_op(op_received, t_data->server_data);
+        op_sent = process_client_op(op_received, &(t_data->server_data));
         
         if (op_received.operation_type == NEW_POST)
             continue;
@@ -150,31 +186,8 @@ void *client_thread(void *data)
         if(count_bytes_sent != sizeof(struct BlogOperation))
             logexit("send");
     }
-}
-
-void init_client_array(struct client_data *data, int size)
-{
-    int i;
-    for(i = 0; i < size; i++)
-    {
-        data[i].id = 0;
-        data[i].sock = 0;
-    }
-}
-
-void insert_client(struct client_data *client_data, struct client_data *clients)
-{
-    int i;
-    for(i = 0; i < NUM_CLIENTS; i++)
-    {
-        if(clients[i].id == 0)
-        {
-            client_data->id = i;
-            clients[i].id = client_data->id;
-            clients[i].sock = client_data->sock;
-            break;
-        }
-    }
+    free(t_data);
+    pthread_exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char *argv[])
@@ -193,9 +206,9 @@ int main(int argc, char *argv[])
     if (listen(sockfd, 1) != 0)
         logexit("listen");
 
-    struct server_data *server_data = malloc(sizeof(struct server_data));
-    server_data->topics_count = 0;
-    init_client_array(server_data->clients, NUM_CLIENTS);
+    struct server_data server_data;
+    server_data.topics_count = 0;
+    init_client_array(server_data.clients, NUM_CLIENTS);
 
     while (1)
     {
@@ -207,17 +220,18 @@ int main(int argc, char *argv[])
         if (client_sock == -1)
             logexit("accept");
 
-        struct client_data *client_data = malloc(sizeof(struct client_data));
-        client_data->sock = client_sock;
-        insert_client(client_data, server_data->clients);
+        struct client_data c_data;
+        c_data.sock = client_sock;
+        insert_client(&c_data, server_data.clients);
         
         struct thread_info *t_data = malloc(sizeof(struct thread_info));
         t_data->server_data = server_data;
-        t_data->client_data = client_data;
+        t_data->client_data = c_data;
 
         pthread_t thread;
-        pthread_create(&thread, NULL, client_thread, (void *)t_data);
-        free(client_data);
+        if(pthread_create(&thread, NULL, client_thread, t_data) != 0)
+            logexit("pthread_create");
+            
         free(t_data);
     }
     return 0;

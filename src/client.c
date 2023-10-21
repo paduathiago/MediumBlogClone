@@ -30,7 +30,7 @@ struct BlogOperation process_input(char command[], const int id)
     char *first_word;
     first_word = strtok(command, " ");
     
-    if(strcmp(first_word, "publish"))
+    if(strcmp(first_word, "publish") == 0)
     {
         if (strcmp(strtok(NULL, " "), "in"))
         {
@@ -41,12 +41,12 @@ struct BlogOperation process_input(char command[], const int id)
         strcpy(op_sent.topic, strtok(NULL, "\n"));
         fgets(op_sent.content, sizeof(op_sent.content), stdin);
     }
-    else if(strcmp(first_word, "subscribe"))
+    else if(strcmp(first_word, "subscribe") == 0)
     {
         op_sent.operation_type = SUBSCRIBE;
         strcpy(op_sent.topic, strtok(NULL, " "));
     }
-    else if(strcmp(first_word, "list"))
+    else if(strcmp(first_word, "list")== 0)
     {
         if (strcmp(strtok(NULL, " "), "topics"))
         {
@@ -55,7 +55,7 @@ struct BlogOperation process_input(char command[], const int id)
         }
         op_sent.operation_type = LIST_TOPICS;
     }
-    else if(strcmp(first_word, "exit"))
+    else if(strcmp(first_word, "exit") == 0)
     {
         op_sent.operation_type = DISCONNECT;
     }
@@ -127,6 +127,6 @@ int main(int argc, char *argv[])
         }
 
         receive_all(sockfd, &op_received, sizeof(struct BlogOperation));
-        process_server_action(op_received);
+        process_server_op(op_received);
     }
 }
