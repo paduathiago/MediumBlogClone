@@ -36,32 +36,53 @@ struct BlogOperation process_input(char command[], const int id)
     op_sent.client_id = id;
     op_sent.server_response = 0;
     strcpy(op_sent.topic, "");
+    strcpy(op_sent.content, "");
 
     char *first_word;
     first_word = strtok(command, " ");
     
     if(strcmp(first_word, "publish"))
     {
-
+        if (strcmp(strtok(NULL, " "), "in"))
+        {
+            printf("Error! Invalid command\n");
+            exit(1);
+        }
+        op_sent.operation_type = NEW_POST;
+        strcpy(op_sent.topic, strtok(NULL, "\n"));
+        fgets(op_sent.content, sizeof(op_sent.content), stdin);
     }
     else if(strcmp(first_word, "subscribe"))
     {
-
+        op_sent.operation_type = SUBSCRIBE;
+        strcpy(op_sent.topic, strtok(NULL, " "));
     }
     else if(strcmp(first_word, "list"))
     {
-
+        if (strcmp(strtok(NULL, " "), "topics"))
+        {
+            printf("Error! Invalid command\n");
+            exit(1);
+        }
+        op_sent.operation_type = LIST_TOPICS;
     }
-    else if(strcmp(first_word, "disconnect"))
+    else if(strcmp(first_word, "exit"))
     {
-
+        op_sent.operation_type = DISCONNECT;
     }
+    /*
+    else if(strcmp(first_word, "unsubscribe"))
+    {
+        op_sent.operation_type = UNSUBSCRIBE;
+        strcpy(op_sent.topic, strtok(NULL, " "));
+    }
+    */
     else
     {
         printf("Error! Invalid command\n");
         exit(1);
     }
-
+    return op_sent;
 }
 
 int main(int argc, char *argv[])
