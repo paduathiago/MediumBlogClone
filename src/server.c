@@ -18,14 +18,20 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
             break;
         
         case NEW_POST:
+            strcpy(op_sent.topic, op_received.topic);
+            strcpy(op_sent.content, op_received.content);
             printf("new post added in %s by %d\n", op_received.topic, op_received.client_id);
+            
             int found_topic = 0;
             for(int i = 0; i < s_data->topics_count; i++)
             {
                 if(strcmp(s_data->topics[i].name, op_received.topic) == 0)
                 {
-                    // for client in subscribers:
-                    //     send(new post added in %s by %d\n %s, topic, client_id, content)
+                    for(int i = 0; i < NUM_CLIENTS; i++)  // Send new post to all subscribers
+                    {
+                        if(s_data->topics[i].subscribers[i].id != 0)
+                            send(s_data->topics[i].subscribers[i].sock, &op_sent, sizeof(struct BlogOperation), 0);
+                    }
                     found_topic = 1;
                     break;
                 }
@@ -39,7 +45,6 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
                 s_data->topics[s_data->topics_count] = *new_topic;
                 s_data->topics_count++;
             }
-            strcpy(op_sent.topic, op_received.topic);
             break;
         
         case SUBSCRIBE:  // Treat the case where the client is already subscribed to the topic
@@ -91,7 +96,7 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
             s_data->clients[op_received.client_id].id = 0;
             s_data->clients[op_received.client_id].sock = 0;
             
-            for(int i = 0; i < s_data->topics_count; i++)
+            for(int i = 0; i < s_data->topics_count; i++)  // Remove client from all topics
             {
                 for(int j = 0; j < s_data->topics[i].subs_count; j++)
                 {
