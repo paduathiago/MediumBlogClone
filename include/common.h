@@ -27,6 +27,8 @@ struct BlogOperation {
 # define SUBSCRIBE 4
 # define DISCONNECT 5
 
+void logexit(const char *msg);
+void parse_addr(const char *addrstr, const char *addrport, struct sockaddr_storage *storage);
 void server_sockaddr_init(char *protocol, char * addr, struct sockaddr_storage *storage);
 size_t receive_all(int socket, void *buffer, size_t size);
 
