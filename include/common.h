@@ -17,6 +17,9 @@ struct BlogOperation {
     char content[2048];
 };
 
+# define NUM_CLIENTS 10
+#define NUM_TOPICS 100
+
 // Action Types:
 # define NEW_CONNECION 1
 # define NEW_POST 2
