@@ -19,13 +19,60 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
         
         case NEW_POST:
             printf("new post added in %s by %d\n", op_received.topic, op_received.client_id);
-            // if topic doenst exist, create it
+            int found_topic = 0;
+            for(int i = 0; i < s_data->topics_count; i++)
+            {
+                if(strcmp(s_data->topics[i].name, op_received.topic) == 0)
+                {
+                    // for client in subscribers:
+                    //     send(new post added in %s by %d\n %s, topic, client_id, content)
+                    found_topic = 1;
+                    break;
+                }
+            }
+            if(!found_topic)  // if topic doesn't exist, create it
+            {
+                struct topic_data *new_topic = create_topic(op_received.topic);
+                insert_client(&(s_data->clients[op_received.client_id]), new_topic->subscribers);
+                new_topic->subs_count++;
+
+                s_data->topics[s_data->topics_count] = *new_topic;
+                s_data->topics_count++;
+            }
+            strcpy(op_sent.topic, op_received.topic);
             break;
         
         case SUBSCRIBE:  // Treat the case where the client is already subscribed to the topic
-            printf("client %d subscribed to %s\n", op_received.client_id, op_received.topic);
-            // if topic doesn't exist, create it
+            int found_topic = 0;
+            for(int i = 0; i < s_data->topics_count; i++)
+            {
+                if(strcmp(s_data->topics[i].name, op_received.topic) == 0)
+                {
+                    found_topic = 1;
+                    for(int j = 0; j < s_data->topics[i].subs_count; j++)
+                    {
+                        if(s_data->topics[i].subscribers[j].id == op_received.client_id)
+                        {
+                            strcpy(op_sent.content, "error: already subscribed");
+                            return op_sent;
+                        }
+                    }
+                    insert_client(&(s_data->clients[op_received.client_id]), s_data->topics[i].subscribers);
+                    s_data->topics[i].subs_count++;
+                    break;
+                }
+            }
+            if(!found_topic)  // if topic doesn't exist, create it
+            {
+                struct topic_data *new_topic = create_topic(op_received.topic);
+                insert_client(&(s_data->clients[op_received.client_id]), new_topic->subscribers);
+                new_topic->subs_count++;
+
+                s_data->topics[s_data->topics_count] = *new_topic;
+                s_data->topics_count++;
+            }
             strcpy(op_sent.topic, op_received.topic);
+            printf("client %d subscribed to %s\n", op_received.client_id, op_received.topic);
             break;
 
         case LIST_TOPICS:
@@ -34,7 +81,7 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
             else
             {
                 for(int i = 0; i < s_data->topics_count; i++)
-                sprintf(op_sent.content, "%s; ", s_data->topics[i].topic_name);
+                sprintf(op_sent.content, "%s; ", s_data->topics[i].name);
             }
             break;
         
@@ -53,12 +100,22 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
                         s_data->topics[i].subscribers[j].id = 0;
                         s_data->topics[i].subs_count--;
                     }
+                    break;
                 }
             }
             
             break;
     }
     return op_sent;
+}
+
+struct topic_data *create_topic(char *topic_name)
+{
+    struct topic_data *new_topic = malloc(sizeof(struct topic_data));
+    strcpy(new_topic->name, topic_name);
+    init_client_array(new_topic->subscribers, NUM_CLIENTS);
+    new_topic->subs_count = 0;
+    return new_topic;
 }
 
 void *client_thread(void *data)
@@ -113,8 +170,6 @@ void insert_client(struct client_data *client_data, struct client_data *clients)
 
 int main(int argc, char *argv[])
 {
-    int opt;
-
     char *ip_version = argv[1];
     char * port = argv[2];
 
@@ -154,6 +209,7 @@ int main(int argc, char *argv[])
         pthread_t thread;
         pthread_create(&thread, NULL, client_thread, (void *)t_data);
         free(client_data);
+        free(t_data);
     }
     return 0;
 }

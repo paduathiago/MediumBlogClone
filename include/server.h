@@ -11,7 +11,7 @@ struct client_data
 
 struct topic_data
 {
-    char topic_name[50];
+    char name[50];
     struct client_data subscribers[NUM_CLIENTS];
     int subs_count;
 };
