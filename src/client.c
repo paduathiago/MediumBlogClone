@@ -8,25 +8,14 @@
 
 void process_server_op(struct BlogOperation op_received)
 {
-    if(op_received.operation_type == NEW_CONNECION)
+    if(op_received.operation_type == NEW_POST)
     {
-
+        printf("new post added in %s by %d\n", op_received.topic, op_received.client_id);
+        printf("%s\n", op_received.content);
     }
-    else if(op_received.operation_type == NEW_POST)
+    else if(op_received.operation_type == LIST_TOPICS || op_received.operation_type == SUBSCRIBE)
     {
-
-    }
-    else if(op_received.operation_type == LIST_TOPICS)
-    {
-
-    }
-    else if(op_received.operation_type == SUBSCRIBE)
-    {
-
-    }
-    else if(op_received.operation_type == DISCONNECT)
-    {
-
+        printf("%s", op_received.content);
     }
 }
 
@@ -120,14 +109,12 @@ int main(int argc, char *argv[])
 
     while(1)
     {
-        struct BlogOperation op_sent;
-        op_sent.client_id = myid;
-        
+        struct BlogOperation op_sent;      
         char command[100];
 
         fgets(command, sizeof(command), stdin);
 
-        // op_sent = process_input(op_topic, int id);
+        op_sent = process_input(command, myid);
         
         size_t count_bytes_sent = send(sockfd, &op_sent, sizeof(struct BlogOperation), 0);
         if(count_bytes_sent != sizeof(struct BlogOperation))
@@ -140,7 +127,6 @@ int main(int argc, char *argv[])
         }
 
         receive_all(sockfd, &op_received, sizeof(struct BlogOperation));
-        
         process_server_action(op_received);
     }
 }

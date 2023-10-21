@@ -82,7 +82,7 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
 
         case LIST_TOPICS:
             if(s_data->topics_count == 0)
-                strcpy(op_sent.content, "None");
+                strcpy(op_sent.content, "no topics available");
             else
             {
                 for(int i = 0; i < s_data->topics_count; i++)
@@ -140,8 +140,12 @@ void *client_thread(void *data)
             close(client_sock);
             break;
         }
-        // op_sent = process_client_op(op_received);
+
+        op_sent = process_client_op(op_received, t_data->server_data);
         
+        if (op_received.operation_type == NEW_POST)
+            continue;
+
         size_t count_bytes_sent = send(client_sock, &op_sent, sizeof(struct BlogOperation), 0);
         if(count_bytes_sent != sizeof(struct BlogOperation))
             logexit("send");
