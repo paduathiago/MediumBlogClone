@@ -1,21 +1,20 @@
 #include "common.h"
 #include "server.h"
 
-
-struct BlogOperation process_client_op(struct BlogOperation op_received)
+struct BlogOperation process_client_op(struct BlogOperation op_received, struct server_data *s_data)
 {
     struct BlogOperation op_sent;
     op_sent.client_id = op_received.client_id;
     op_sent.operation_type = op_received.operation_type;
     op_sent.server_response = 1;
+    strcpy(op_sent.topic, "");
+    strcpy(op_sent.content, "");
 
     switch (op_received.operation_type)
     {
         case NEW_CONNECION:
             printf("client %d connected\n", op_received.client_id);  // In cases where id < 10, is it necessary to add a zero before the id?
             op_sent.client_id = op_received.client_id;
-            strcpy(op_sent.topic, "");
-            strcpy(op_sent.content, "");
             break;
         
         case NEW_POST:
@@ -27,13 +26,37 @@ struct BlogOperation process_client_op(struct BlogOperation op_received)
             printf("client %d subscribed to %s\n", op_received.client_id, op_received.topic);
             // if topic doesn't exist, create it
             strcpy(op_sent.topic, op_received.topic);
-            strcpy(op_sent.content, "");
             break;
 
         case LIST_TOPICS:
+            if(s_data->topics_count == 0)
+                strcpy(op_sent.content, "None");
+            else
+            {
+                for(int i = 0; i < s_data->topics_count; i++)
+                sprintf(op_sent.content, "%s; ", s_data->topics[i].topic_name);
+            }
             break;
         
-        // case DISCONNECT?
+        case DISCONNECT:
+            printf("client %d was disconnected\n", op_received.client_id);
+            
+            s_data->clients[op_received.client_id].id = 0;
+            s_data->clients[op_received.client_id].sock = 0;
+            
+            for(int i = 0; i < s_data->topics_count; i++)
+            {
+                for(int j = 0; j < s_data->topics[i].subs_count; j++)
+                {
+                    if(s_data->topics[i].subscribers[j].id == op_received.client_id)
+                    {
+                        s_data->topics[i].subscribers[j].id = 0;
+                        s_data->topics[i].subs_count--;
+                    }
+                }
+            }
+            
+            break;
     }
     return op_sent;
 }
@@ -63,25 +86,26 @@ void *client_thread(void *data)
     }
 }
 
-void init_server_data(struct server_data *server_data)
+void init_client_array(struct client_data *data, int size)
 {
     int i;
-    for(i = 0; i < NUM_CLIENTS; i++)
+    for(i = 0; i < size; i++)
     {
-        server_data->clients[i].id = 0;
-        server_data->clients[i].sock = 0;
+        data[i].id = 0;
+        data[i].sock = 0;
     }
 }
 
-void insert_client(struct server_data *server_data, struct client_data *client_data)
+void insert_client(struct client_data *client_data, struct client_data *clients)
 {
     int i;
     for(i = 0; i < NUM_CLIENTS; i++)
     {
-        if(server_data->clients[i].id == 0)
+        if(clients[i].id == 0)
         {
-            server_data->clients[i].id = i;
-            server_data->clients[i].sock = client_data->sock;
+            client_data->id = i;
+            clients[i].id = client_data->id;
+            clients[i].sock = client_data->sock;
             break;
         }
     }
@@ -106,7 +130,8 @@ int main(int argc, char *argv[])
         logexit("listen");
 
     struct server_data *server_data = malloc(sizeof(struct server_data));
-    init_server_data(server_data);
+    server_data->topics_count = 0;
+    init_client_array(server_data->clients, NUM_CLIENTS);
 
     while (1)
     {
@@ -120,7 +145,7 @@ int main(int argc, char *argv[])
 
         struct client_data *client_data = malloc(sizeof(struct client_data));
         client_data->sock = client_sock;
-        insert_client(server_data, client_data);
+        insert_client(client_data, server_data->clients);
         
         struct thread_info *t_data = malloc(sizeof(struct thread_info));
         t_data->server_data = server_data;

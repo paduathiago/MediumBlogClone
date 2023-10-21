@@ -11,16 +11,16 @@ struct client_data
 
 struct topic_data
 {
-    char topic_name[100];
-    struct client_data topic_subscribers[NUM_CLIENTS];
-    int topic_subscribers_count;
+    char topic_name[50];
+    struct client_data subscribers[NUM_CLIENTS];
+    int subs_count;
 };
 
 struct server_data
 {
     struct client_data clients[NUM_CLIENTS];
     struct topic_data topics[NUM_TOPICS];
-    int client_count;
+    int topics_count;
     // posição disponível para ID
 };
 
