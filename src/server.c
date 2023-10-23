@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-void init_client_array(struct client_data *data, int size)
+void init_client_array(struct client_data data[], int size)
 {
     for(int i = 0; i < size; i++)
     {
@@ -17,10 +17,13 @@ void init_client_array(struct client_data *data, int size)
     }
 }
 
+/*
+Insert client in the first available position in the array.
+Return the client's id if successful, -1 otherwise.
+*/
 int insert_client(struct client_data *client_data, struct client_data clients[])  // REVIEW
 {
-    int i;
-    for(i = 0; i < NUM_CLIENTS; i++)
+    for(int i = 0; i < NUM_CLIENTS; i++)
     {
         if(clients[i].id == 0)
         {
@@ -31,12 +34,12 @@ int insert_client(struct client_data *client_data, struct client_data clients[])
     return -1;
 }
 
-struct topic_data *create_topic(char *topic_name)
+struct topic_data create_topic(char *topic_name)
 {
-    struct topic_data *new_topic = malloc(sizeof(struct topic_data));
-    strcpy(new_topic->name, topic_name);
-    init_client_array(new_topic->subscribers, NUM_CLIENTS);
-    new_topic->subs_count = 0;
+    struct topic_data new_topic;
+    strcpy(new_topic.name, topic_name);
+    init_client_array(new_topic.subscribers, NUM_CLIENTS);
+    new_topic.subs_count = 0;
     return new_topic;
 }
 
@@ -77,11 +80,11 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
             }
             if(!found_topic)  // if topic doesn't exist, create it
             {
-                struct topic_data *new_topic = create_topic(op_received.topic);
-                insert_client(&(s_data->clients[op_received.client_id]), new_topic->subscribers);
-                new_topic->subs_count++;
+                struct topic_data new_topic = create_topic(op_received.topic);
+                insert_client(&(s_data->clients[op_received.client_id]), new_topic.subscribers);
+                new_topic.subs_count++;
 
-                s_data->topics[s_data->topics_count] = *new_topic;
+                s_data->topics[s_data->topics_count] = new_topic;
                 s_data->topics_count++;
             }
             break;
@@ -93,8 +96,10 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
                 if(strcmp(s_data->topics[i].name, op_received.topic) == 0)
                 {
                     found_topic = 1;
+                    printf("client id: %d, topic %s\n", op_received.client_id, op_received.topic);
                     for(int j = 0; j < s_data->topics[i].subs_count; j++)
                     {
+                        printf("id = %d\n", s_data->topics[i].subscribers[j].id);
                         if(s_data->topics[i].subscribers[j].id == op_received.client_id)
                         {
                             strcpy(op_sent.content, "error: already subscribed");
@@ -108,11 +113,12 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
             }
             if(!found_topic)  // if topic doesn't exist, create it
             {
-                struct topic_data *new_topic = create_topic(op_received.topic);
-                insert_client(&(s_data->clients[op_received.client_id]), new_topic->subscribers);
-                new_topic->subs_count++;
+                printf("not found \n");  // Remove
+                struct topic_data new_topic = create_topic(op_received.topic);
+                insert_client(&(s_data->clients[op_received.client_id - 1]), new_topic.subscribers);
+                new_topic.subs_count++;
 
-                s_data->topics[s_data->topics_count] = *new_topic;
+                s_data->topics[s_data->topics_count] = new_topic;
                 s_data->topics_count++;
             }
             strcpy(op_sent.topic, op_received.topic);
@@ -121,11 +127,22 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
 
         case LIST_TOPICS:
             if(s_data->topics_count == 0)
-                strcpy(op_sent.content, "no topics available");
+                strcpy(op_sent.content, "no topics available\n");
             else
             {
                 for(int i = 0; i < s_data->topics_count; i++)
-                sprintf(op_sent.content, "%s; ", s_data->topics[i].name);
+                {
+                    if(i != s_data->topics_count - 1)
+                    {
+                        strcat(op_sent.content, s_data->topics[i].name);
+                        strcat(op_sent.content, "; ");
+                    }
+                    else
+                    {
+                        strcat(op_sent.content, s_data->topics[i].name);
+                        strcat(op_sent.content, "\n");
+                    }
+                }
             }
             break;
         

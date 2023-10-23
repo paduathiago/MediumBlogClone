@@ -14,9 +14,7 @@ void process_server_op(struct BlogOperation op_received)
         printf("%s\n", op_received.content);
     }
     else if(op_received.operation_type == LIST_TOPICS || op_received.operation_type == SUBSCRIBE)
-    {
         printf("%s", op_received.content);
-    }
 }
 
 struct BlogOperation process_input(char command[], const int id)
@@ -44,11 +42,11 @@ struct BlogOperation process_input(char command[], const int id)
     else if(strcmp(first_word, "subscribe") == 0)
     {
         op_sent.operation_type = SUBSCRIBE;
-        strcpy(op_sent.topic, strtok(NULL, " "));
+        strcpy(op_sent.topic, strtok(NULL, " \n"));
     }
-    else if(strcmp(first_word, "list")== 0)
+    else if(strcmp(first_word, "list") == 0)
     {
-        if (strcmp(strtok(NULL, " "), "topics"))
+        if (strcmp(strtok(NULL, " \n"), "topics"))
         {
             printf("Error! Invalid command\n");
             exit(1);
