@@ -10,27 +10,25 @@
 
 void init_client_array(struct client_data *data, int size)
 {
-    int i;
-    for(i = 0; i < size; i++)
+    for(int i = 0; i < size; i++)
     {
         data[i].id = 0;
         data[i].sock = 0;
     }
 }
 
-void insert_client(struct client_data *client_data, struct client_data *clients)
+int insert_client(struct client_data *client_data, struct client_data clients[])  // REVIEW
 {
     int i;
     for(i = 0; i < NUM_CLIENTS; i++)
     {
         if(clients[i].id == 0)
         {
-            client_data->id = i + 1;
-            clients[i].id = client_data->id;
-            clients[i].sock = client_data->sock;
-            break;
+            clients[i] = *client_data;
+            return i + 1;
         }
     }
+    return -1;
 }
 
 struct topic_data *create_topic(char *topic_name)
@@ -42,7 +40,7 @@ struct topic_data *create_topic(char *topic_name)
     return new_topic;
 }
 
-struct BlogOperation process_client_op(struct BlogOperation op_received, struct server_data *s_data)
+struct BlogOperation process_client_op(struct BlogOperation op_received, struct server_data *s_data, struct client_data *c_data)
 {
     struct BlogOperation op_sent;
     op_sent.client_id = op_received.client_id;
@@ -54,9 +52,8 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
     switch (op_received.operation_type)
     {
         case NEW_CONNECION:
-            
-            printf("client %d connected\n", op_received.client_id);  // In cases where id < 10, is it necessary to add a zero before the id?
-            op_sent.client_id = op_received.client_id;
+            op_sent.client_id = c_data->id;
+            printf("client %d connected\n", op_sent.client_id);  // In cases where id < 10, is it necessary to add a zero before the id?
             break;
         
         case NEW_POST:
@@ -150,7 +147,6 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
                     break;
                 }
             }
-            
             break;
     }
     return op_sent;
@@ -159,8 +155,6 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
 void *client_thread(void *data)
 {
     struct thread_info *t_data = (struct thread_info *)data;
-    printf("%d\n", t_data->client_data.sock);
-    printf("checkpoint \n");
     
     int client_sock = t_data->client_data.sock;
 
@@ -177,7 +171,7 @@ void *client_thread(void *data)
             break;
         }
 
-        op_sent = process_client_op(op_received, &(t_data->server_data));
+        op_sent = process_client_op(op_received, &(t_data->server_data), &(t_data->client_data));
         
         if (op_received.operation_type == NEW_POST)
             continue;
@@ -222,7 +216,9 @@ int main(int argc, char *argv[])
 
         struct client_data c_data;
         c_data.sock = client_sock;
-        insert_client(&c_data, server_data.clients);
+        int id = insert_client(&c_data, server_data.clients);
+        c_data.id = id;
+        server_data.clients[id - 1].id = id;
         
         struct thread_info *t_data = malloc(sizeof(struct thread_info));
         t_data->server_data = server_data;
