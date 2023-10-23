@@ -96,7 +96,6 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
                 if(strcmp(s_data->topics[i].name, op_received.topic) == 0)
                 {
                     found_topic = 1;
-                    printf("client id: %d, topic %s\n", op_received.client_id, op_received.topic);
                     for(int j = 0; j < s_data->topics[i].subs_count; j++)
                     {
                         printf("id = %d\n", s_data->topics[i].subscribers[j].id);
@@ -248,3 +247,6 @@ int main(int argc, char *argv[])
     }
     return 0;
 }
+// desafio manter as estruturas de dados do cliente atualizadas conforme as
+// threads se conectam para manter as informações atualizadas durante a execução de múltiplas
+// quando receber a mensagem do lado do cliente foi um desafio: disparar um thread exclusiva para ler inputs do usuário

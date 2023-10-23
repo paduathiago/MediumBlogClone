@@ -11,7 +11,7 @@ void process_server_op(struct BlogOperation op_received)
     if(op_received.operation_type == NEW_POST)
     {
         printf("new post added in %s by %d\n", op_received.topic, op_received.client_id);
-        printf("%s\n", op_received.content);
+        printf("%s", op_received.content);
     }
     else if(op_received.operation_type == LIST_TOPICS || op_received.operation_type == SUBSCRIBE)
         printf("%s", op_received.content);
@@ -36,7 +36,7 @@ struct BlogOperation process_input(char command[], const int id)
             exit(1);
         }
         op_sent.operation_type = NEW_POST;
-        strcpy(op_sent.topic, strtok(NULL, "\n"));
+        strcpy(op_sent.topic, strtok(NULL, " \n"));
         fgets(op_sent.content, sizeof(op_sent.content), stdin);
     }
     else if(strcmp(first_word, "subscribe") == 0)
@@ -111,7 +111,6 @@ int main(int argc, char *argv[])
         char command[100];
 
         fgets(command, sizeof(command), stdin);
-
         op_sent = process_input(command, myid);
         
         size_t count_bytes_sent = send(sockfd, &op_sent, sizeof(struct BlogOperation), 0);
