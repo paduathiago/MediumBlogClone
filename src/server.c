@@ -81,7 +81,7 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
             if(!found_topic)  // if topic doesn't exist, create it
             {
                 struct topic_data new_topic = create_topic(op_received.topic);
-                insert_client(&(s_data->clients[op_received.client_id]), new_topic.subscribers);
+                insert_client(c_data, new_topic.subscribers);
                 new_topic.subs_count++;
 
                 s_data->topics[s_data->topics_count] = new_topic;
@@ -102,7 +102,7 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
                         printf("id = %d\n", s_data->topics[i].subscribers[j].id);
                         if(s_data->topics[i].subscribers[j].id == op_received.client_id)
                         {
-                            strcpy(op_sent.content, "error: already subscribed");
+                            strcpy(op_sent.content, "error: already subscribed\n");
                             return op_sent;
                         }
                     }
@@ -113,9 +113,8 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
             }
             if(!found_topic)  // if topic doesn't exist, create it
             {
-                printf("not found \n");  // Remove
                 struct topic_data new_topic = create_topic(op_received.topic);
-                insert_client(&(s_data->clients[op_received.client_id - 1]), new_topic.subscribers);
+                insert_client(c_data, new_topic.subscribers);
                 new_topic.subs_count++;
 
                 s_data->topics[s_data->topics_count] = new_topic;
