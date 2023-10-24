@@ -13,7 +13,8 @@ void process_server_op(struct BlogOperation op_received)
         printf("new post added in %s by %d\n", op_received.topic, op_received.client_id);
         printf("%s", op_received.content);
     }
-    else if(op_received.operation_type == LIST_TOPICS || op_received.operation_type == SUBSCRIBE)
+    else if (op_received.operation_type == LIST_TOPICS || op_received.operation_type == SUBSCRIBE
+             || op_received.operation_type == DISCONNECT)
         printf("%s", op_received.content);
 }
 

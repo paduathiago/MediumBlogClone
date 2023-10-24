@@ -154,7 +154,7 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
         
         case DISCONNECT:
             s_data->clients[op_received.client_id - 1].id = 0;
-        
+
             for(int i = 0; i < s_data->topics_count; i++)  // Remove client from all topics
             {
                 for(int j = 0; j < s_data->topics[i].subs_count; j++)
@@ -167,6 +167,7 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
                     break;
                 }
             }
+            op_sent.operation_type = DISCONNECT;
             printf("client %d was disconnected\n", op_received.client_id);
             break;
     }
@@ -185,18 +186,18 @@ void *client_thread(void *data)
 
         op_sent = process_client_op(op_received, t_data->server_data, &(t_data->client_data));
         
-        if(op_received.operation_type == DISCONNECT)
-        {
-            close(client_sock);
-            break;
-        }
-        
         if (op_received.operation_type == NEW_POST)
             continue;
 
         size_t count_bytes_sent = send(client_sock, &op_sent, sizeof(struct BlogOperation), 0);
         if(count_bytes_sent != sizeof(struct BlogOperation))
             logexit("send");
+        
+        if(op_received.operation_type == DISCONNECT)
+        {
+            close(client_sock);
+            break;
+        }
     }
     pthread_exit(EXIT_SUCCESS);
 }
