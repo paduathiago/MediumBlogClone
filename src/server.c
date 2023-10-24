@@ -44,7 +44,7 @@ struct topic_data create_topic(char *topic_name)
 }
 
 struct BlogOperation process_client_op(struct BlogOperation op_received, struct server_data *s_data, struct client_data *c_data)
-{
+{    
     struct BlogOperation op_sent;
     op_sent.client_id = op_received.client_id;
     op_sent.operation_type = op_received.operation_type;
@@ -69,10 +69,10 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
             {
                 if(strcmp(s_data->topics[i].name, op_received.topic) == 0)
                 {
-                    for(int i = 0; i < NUM_CLIENTS; i++)  // Send new post to all subscribers
+                    for(int j = 0; j < NUM_CLIENTS; j++)  // Send new post to all subscribers
                     {
-                        if(s_data->topics[i].subscribers[i].id != 0)
-                            send(s_data->topics[i].subscribers[i].sock, &op_sent, sizeof(struct BlogOperation), 0);
+                        if(s_data->topics[i].subscribers[j].id != 0)
+                            send(s_data->topics[i].subscribers[j].sock, &op_sent, sizeof(struct BlogOperation), 0);
                     }
                     found_topic = 1;
                     break;
@@ -98,14 +98,17 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
                     found_topic = 1;
                     for(int j = 0; j < s_data->topics[i].subs_count; j++)
                     {
-                        printf("id = %d\n", s_data->topics[i].subscribers[j].id);
-                        if(s_data->topics[i].subscribers[j].id == op_received.client_id)
+                        if(s_data->topics[i].subscribers[j].id == c_data->id)
                         {
                             strcpy(op_sent.content, "error: already subscribed\n");
                             return op_sent;
                         }
                     }
-                    insert_client(&(s_data->clients[op_received.client_id]), s_data->topics[i].subscribers);
+                    insert_client(c_data, s_data->topics[i].subscribers);
+                    for(int i = 0; i < NUM_CLIENTS; i++)
+                    {
+                        printf("client %d: %d\n", i, s_data->topics[i].subscribers[i].id);
+                    }
                     s_data->topics[i].subs_count++;
                     break;
                 }
@@ -114,6 +117,10 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
             {
                 struct topic_data new_topic = create_topic(op_received.topic);
                 insert_client(c_data, new_topic.subscribers);
+                for(int i = 0; i < NUM_CLIENTS; i++)
+                {
+                    printf("client %d: %d\n", i, new_topic.subscribers[i].id);
+                }
                 new_topic.subs_count++;
 
                 s_data->topics[s_data->topics_count] = new_topic;
@@ -170,11 +177,9 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
 void *client_thread(void *data)
 {
     struct thread_info *t_data = (struct thread_info *)data;
-    
     int client_sock = t_data->client_data.sock;
 
     struct BlogOperation op_received, op_sent;
-    
     while(1)
     {
         receive_all(client_sock, &op_received, sizeof(struct BlogOperation));
