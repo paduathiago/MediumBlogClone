@@ -26,6 +26,6 @@ struct server_data
 
 struct thread_info
 {
-    struct server_data server_data;
+    struct server_data *server_data;
     struct client_data client_data;
 };

@@ -81,9 +81,6 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
             if(!found_topic)  // if topic doesn't exist, create it
             {
                 struct topic_data new_topic = create_topic(op_received.topic);
-                insert_client(c_data, new_topic.subscribers);
-                new_topic.subs_count++;
-
                 s_data->topics[s_data->topics_count] = new_topic;
                 s_data->topics_count++;
             }
@@ -100,6 +97,10 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
                     {
                         if(s_data->topics[i].subscribers[j].id == c_data->id)
                         {
+                            for(int i = 0; i < NUM_CLIENTS; i++)
+                            {
+                                printf("client %d: %d\n", i, s_data->topics[i].subscribers[i].id);
+                            }
                             strcpy(op_sent.content, "error: already subscribed\n");
                             return op_sent;
                         }
@@ -191,7 +192,7 @@ void *client_thread(void *data)
             break;
         }
 
-        op_sent = process_client_op(op_received, &(t_data->server_data), &(t_data->client_data));
+        op_sent = process_client_op(op_received, t_data->server_data, &(t_data->client_data));
         
         if (op_received.operation_type == NEW_POST)
             continue;
@@ -224,6 +225,8 @@ int main(int argc, char *argv[])
     server_data.topics_count = 0;
     init_client_array(server_data.clients, NUM_CLIENTS);
 
+    struct thread_info thread_info[10];
+
     while (1)
     {
         struct sockaddr_storage client_storage;
@@ -240,15 +243,14 @@ int main(int argc, char *argv[])
         c_data.id = id;
         server_data.clients[id - 1].id = id;
         
-        struct thread_info *t_data = malloc(sizeof(struct thread_info));
-        t_data->server_data = server_data;
-        t_data->client_data = c_data;
+        struct thread_info t_data;
+        t_data.server_data = &server_data;
+        t_data.client_data = c_data;
+        thread_info[id - 1] = t_data;
 
         pthread_t thread;
-        if(pthread_create(&thread, NULL, client_thread, t_data) != 0)
+        if(pthread_create(&thread, NULL, client_thread, &thread_info[id -1]) != 0)
             logexit("pthread_create");
-            
-        free(t_data);
     }
     return 0;
 }
