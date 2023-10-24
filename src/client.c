@@ -74,7 +74,7 @@ struct BlogOperation process_input(char command[], const int id)
 
 void *send_messages(void *data)
 {
-    int sockfd = *(int *)data;
+    int *sockfd = (int *)data;
     struct BlogOperation op_sent, op_received;
     op_sent.operation_type = NEW_CONNECION;
     op_sent.client_id = 0;
@@ -82,27 +82,27 @@ void *send_messages(void *data)
     strcpy(op_sent.topic, "");
     strcpy(op_sent.content, "");
 
-    size_t count_bytes_sent = send(sockfd, &op_sent, sizeof(struct BlogOperation), 0);
+    size_t count_bytes_sent = send(*sockfd, &op_sent, sizeof(struct BlogOperation), 0);
     if(count_bytes_sent != sizeof(struct BlogOperation))
         logexit("send");
 
-    receive_all(sockfd, &op_received, sizeof(struct BlogOperation)); // recv client's ID
+    receive_all(*sockfd, &op_received, sizeof(struct BlogOperation)); // recv client's ID
     int myid = op_received.client_id;
 
     char command[100];
-    while(1)
+    while(*sockfd != -1)
     {
         fgets(command, sizeof(command), stdin);
         op_sent = process_input(command, myid);
         
-        size_t count_bytes_sent = send(sockfd, &op_sent, sizeof(struct BlogOperation), 0);
+        size_t count_bytes_sent = send(*sockfd, &op_sent, sizeof(struct BlogOperation), 0);
         if(count_bytes_sent != sizeof(struct BlogOperation))
             logexit("send");
         
         if(op_sent.operation_type == DISCONNECT)
         {
-            close(sockfd);
-            sockfd = -1;
+            close(*sockfd);
+            *sockfd = -1;
             break;
         }    
     }
