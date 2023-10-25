@@ -97,19 +97,11 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
                     {
                         if(s_data->topics[i].subscribers[j].id == c_data->id)
                         {
-                            for(int i = 0; i < NUM_CLIENTS; i++)
-                            {
-                                printf("client %d: %d\n", i, s_data->topics[i].subscribers[i].id);
-                            }
                             strcpy(op_sent.content, "error: already subscribed\n");
                             return op_sent;
                         }
                     }
                     insert_client(c_data, s_data->topics[i].subscribers);
-                    for(int i = 0; i < NUM_CLIENTS; i++)
-                    {
-                        printf("client %d: %d\n", i, s_data->topics[i].subscribers[i].id);
-                    }
                     s_data->topics[i].subs_count++;
                     break;
                 }
@@ -118,10 +110,6 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
             {
                 struct topic_data new_topic = create_topic(op_received.topic);
                 insert_client(c_data, new_topic.subscribers);
-                for(int i = 0; i < NUM_CLIENTS; i++)
-                {
-                    printf("client %d: %d\n", i, new_topic.subscribers[i].id);
-                }
                 new_topic.subs_count++;
 
                 s_data->topics[s_data->topics_count] = new_topic;
@@ -188,7 +176,7 @@ void *client_thread(void *data)
         
         if (op_received.operation_type == NEW_POST)
             continue;
-
+        
         size_t count_bytes_sent = send(client_sock, &op_sent, sizeof(struct BlogOperation), 0);
         if(count_bytes_sent != sizeof(struct BlogOperation))
             logexit("send");
@@ -211,6 +199,9 @@ int main(int argc, char *argv[])
 
     server_sockaddr_init(ip_version, port, &storage);
     int sockfd = socket(storage.ss_family, SOCK_STREAM, 0);
+    int enable = 1;
+        if (0 != setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int))) 
+            logexit("setsockopt");
 
     if (bind(sockfd, (struct sockaddr *)&storage, sizeof(storage)) != 0)
         logexit("bind");
