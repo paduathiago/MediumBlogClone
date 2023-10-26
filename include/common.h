@@ -26,6 +26,7 @@ struct BlogOperation {
 # define LIST_TOPICS 3
 # define SUBSCRIBE 4
 # define DISCONNECT 5
+# define UNSUBSCRIBE 6
 
 void logexit(const char *msg);
 void parse_addr(const char *addrstr, const char *addrport, struct sockaddr_storage *storage);

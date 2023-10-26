@@ -21,7 +21,7 @@ void init_client_array(struct client_data data[], int size)
 Insert client in the first available position in the array.
 Return the client's id if successful, -1 otherwise.
 */
-int insert_client(struct client_data *client_data, struct client_data clients[])  // REVIEW
+int insert_client(struct client_data *client_data, struct client_data clients[])
 {
     for(int i = 0; i < NUM_CLIENTS; i++)
     {
@@ -41,6 +41,19 @@ struct topic_data create_topic(char *topic_name)
     init_client_array(new_topic.subscribers, NUM_CLIENTS);
     new_topic.subs_count = 0;
     return new_topic;
+}
+
+void remove_client_from_topic(int id, struct topic_data *topic_data)
+{
+    for(int i = 0; i < NUM_CLIENTS; i++)
+    {
+        if(topic_data->subscribers[i].id == id )
+        {
+            topic_data->subscribers[i].id = 0;
+            topic_data->subs_count--;
+            break;
+        }
+    }
 }
 
 struct BlogOperation process_client_op(struct BlogOperation op_received, struct server_data *s_data, struct client_data *c_data)
@@ -86,14 +99,14 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
             }
             break;
         
-        case SUBSCRIBE:  // Treat the case where the client is already subscribed to the topic
+        case SUBSCRIBE:
             found_topic = 0;
             for(int i = 0; i < s_data->topics_count; i++)
             {
                 if(strcmp(s_data->topics[i].name, op_received.topic) == 0)
                 {
                     found_topic = 1;
-                    for(int j = 0; j < s_data->topics[i].subs_count; j++)
+                    for(int j = 0; j < NUM_CLIENTS; j++)
                     {
                         if(s_data->topics[i].subscribers[j].id == c_data->id)
                         {
@@ -117,6 +130,26 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
             }
             strcpy(op_sent.topic, op_received.topic);
             printf("client %d subscribed to %s\n", op_received.client_id, op_received.topic);
+            break;
+        
+        case UNSUBSCRIBE:
+            found_topic = 0;
+            for(int i = 0; i < s_data->topics_count; i++)
+            {
+                if(strcmp(s_data->topics[i].name, op_received.topic) == 0)
+                {
+                    found_topic = 1;
+                    remove_client_from_topic(op_received.client_id, &(s_data->topics[i]));
+                    printf("client %d unsubscribed from %s\n", op_received.client_id, op_received.topic);
+                    break;
+                }
+            }
+            if(!found_topic)
+            {
+                strcpy(op_sent.content, "error: topic doesn't exist\n");
+                return op_sent;
+            }
+            strcpy(op_sent.topic, op_received.topic);
             break;
 
         case LIST_TOPICS:
@@ -144,17 +177,8 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
             s_data->clients[op_received.client_id - 1].id = 0;
 
             for(int i = 0; i < s_data->topics_count; i++)  // Remove client from all topics
-            {
-                for(int j = 0; j < s_data->topics[i].subs_count; j++)
-                {
-                    if(s_data->topics[i].subscribers[j].id == op_received.client_id)
-                    {
-                        s_data->topics[i].subscribers[j].id = 0;
-                        s_data->topics[i].subs_count--;
-                    }
-                    break;
-                }
-            }
+                remove_client_from_topic(op_received.client_id, &(s_data->topics[i]));
+
             op_sent.operation_type = DISCONNECT;
             printf("client %d was disconnected\n", op_received.client_id);
             break;
@@ -242,6 +266,3 @@ int main(int argc, char *argv[])
     }
     return 0;
 }
-// desafio manter as estruturas de dados do cliente atualizadas conforme as
-// threads se conectam para manter as informações atualizadas durante a execução de múltiplas
-// quando receber a mensagem do lado do cliente foi um desafio: disparar um thread exclusiva para ler inputs do usuário

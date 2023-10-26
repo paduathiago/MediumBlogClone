@@ -1,3 +1,6 @@
+#ifndef SERVER_H
+#define SERVER_H
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -21,7 +24,6 @@ struct server_data
     struct client_data clients[NUM_CLIENTS];
     struct topic_data topics[NUM_TOPICS];
     int topics_count;
-    // posição disponível para ID
 };
 
 struct thread_info
@@ -29,3 +31,5 @@ struct thread_info
     struct server_data *server_data;
     struct client_data client_data;
 };
+
+#endif

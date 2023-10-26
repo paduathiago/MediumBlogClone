@@ -14,7 +14,7 @@ void process_server_op(struct BlogOperation op_received)
         printf("%s", op_received.content);
     }
     else if (op_received.operation_type == LIST_TOPICS || op_received.operation_type == SUBSCRIBE
-             || op_received.operation_type == DISCONNECT)
+             || op_received.operation_type == DISCONNECT || op_received.operation_type == UNSUBSCRIBE)
         printf("%s", op_received.content);
 }
 
@@ -58,13 +58,11 @@ struct BlogOperation process_input(char command[], const int id)
     {
         op_sent.operation_type = DISCONNECT;
     }
-    /*
-    else if(strcmp(first_word, "unsubscribe"))
+    else if(strcmp(first_word, "unsubscribe") == 0)
     {
         op_sent.operation_type = UNSUBSCRIBE;
-        strcpy(op_sent.topic, strtok(NULL, " "));
+        strcpy(op_sent.topic, strtok(NULL, " \n"));
     }
-    */
     else
     {
         printf("Error! Invalid command\n");
