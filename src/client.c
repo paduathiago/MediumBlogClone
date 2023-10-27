@@ -55,9 +55,8 @@ struct BlogOperation process_input(char command[], const int id)
         op_sent.operation_type = LIST_TOPICS;
     }
     else if(strcmp(first_word, "exit") == 0)
-    {
         op_sent.operation_type = DISCONNECT;
-    }
+        
     else if(strcmp(first_word, "unsubscribe") == 0)
     {
         op_sent.operation_type = UNSUBSCRIBE;
@@ -97,6 +96,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    char command[100];
     struct sockaddr_storage storage;
     parse_addr(argv[1], argv[2], &storage);
 
@@ -119,13 +119,8 @@ int main(int argc, char *argv[])
     if(count_bytes_sent != sizeof(struct BlogOperation))
         logexit("send");
 
-    printf("waiting for server response...\n");
-    printf("socket %d receiving\n", sockfd);
     receive_all(sockfd, &op_received, sizeof(struct BlogOperation)); // recv client's ID
     int myid = op_received.client_id;
-
-    char command[100];
-    printf("socket %d connected\n", sockfd);
 
     pthread_t thread;
         pthread_create(&thread, NULL, get_info, &sockfd);

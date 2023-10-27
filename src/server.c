@@ -5,8 +5,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <semaphore.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+
+sem_t mutex;
 
 void init_client_array(struct client_data data[], int size)
 {
@@ -23,14 +26,17 @@ Return the client's id if successful, -1 otherwise.
 */
 int insert_client(struct client_data *client_data, struct client_data clients[])
 {
+    sem_wait(&mutex);
     for(int i = 0; i < NUM_CLIENTS; i++)
     {
         if(clients[i].id == 0)
         {
             clients[i] = *client_data;
+            sem_post(&mutex);
             return i + 1;
         }
     }
+    sem_post(&mutex);
     return -1;
 }
 
@@ -45,6 +51,7 @@ struct topic_data create_topic(char *topic_name)
 
 void remove_client_from_topic(int id, struct topic_data *topic_data)
 {
+    sem_wait(&mutex);
     for(int i = 0; i < NUM_CLIENTS; i++)
     {
         if(topic_data->subscribers[i].id == id )
@@ -54,6 +61,7 @@ void remove_client_from_topic(int id, struct topic_data *topic_data)
             break;
         }
     }
+    sem_post(&mutex);
 }
 
 struct BlogOperation process_client_op(struct BlogOperation op_received, struct server_data *s_data, struct client_data *c_data)
@@ -94,8 +102,10 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
             if(!found_topic)  // if topic doesn't exist, create it
             {
                 struct topic_data new_topic = create_topic(op_received.topic);
+                sem_wait(&mutex);
                 s_data->topics[s_data->topics_count] = new_topic;
                 s_data->topics_count++;
+                sem_post(&mutex);
             }
             break;
         
@@ -119,14 +129,15 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
                     break;
                 }
             }
-            if(!found_topic)  // if topic doesn't exist, create it
+            if(!found_topic)  // if topic doesn't exist, create it and add client to it
             {
                 struct topic_data new_topic = create_topic(op_received.topic);
                 insert_client(c_data, new_topic.subscribers);
                 new_topic.subs_count++;
-
+                sem_wait(&mutex);
                 s_data->topics[s_data->topics_count] = new_topic;
                 s_data->topics_count++;
+                sem_post(&mutex);
             }
             strcpy(op_sent.topic, op_received.topic);
             printf("client %d subscribed to %s\n", op_received.client_id, op_received.topic);
@@ -216,6 +227,7 @@ void *client_thread(void *data)
 
 int main(int argc, char *argv[])
 {
+    sem_init(&mutex, 0, 1);
     char *ip_version = argv[1];
     char * port = argv[2];
 
