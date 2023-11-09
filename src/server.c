@@ -77,13 +77,19 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
     {
         case NEW_CONNECION:
             op_sent.client_id = c_data->id;
-            printf("client %d connected\n", op_sent.client_id);  // In cases where id < 10, is it necessary to add a zero before the id?
+            if(op_sent.client_id < 10)
+                printf("client 0%d connected\n", op_sent.client_id);
+            else
+                printf("client %d connected\n", op_sent.client_id);
             break;
         
         case NEW_POST:
             strcpy(op_sent.topic, op_received.topic);
             strcpy(op_sent.content, op_received.content);
-            printf("new post added in %s by %d\n", op_received.topic, op_received.client_id);
+            if(op_sent.client_id < 10)
+                printf("new post added in %s by 0%d\n", op_received.topic, op_received.client_id);
+            else
+                printf("new post added in %s by %d\n", op_received.topic, op_received.client_id);
             
             int found_topic = 0;
             for(int i = 0; i < s_data->topics_count; i++)
@@ -140,7 +146,10 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
                 sem_post(&mutex);
             }
             strcpy(op_sent.topic, op_received.topic);
-            printf("client %d subscribed to %s\n", op_received.client_id, op_received.topic);
+            if(op_sent.client_id < 10)
+                printf("client 0%d subscribed to %s\n", op_received.client_id, op_received.topic);
+            else
+                printf("client %d subscribed to %s\n", op_received.client_id, op_received.topic);
             break;
         
         case UNSUBSCRIBE:
@@ -151,7 +160,10 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
                 {
                     found_topic = 1;
                     remove_client_from_topic(op_received.client_id, &(s_data->topics[i]));
-                    printf("client %d unsubscribed from %s\n", op_received.client_id, op_received.topic);
+                    if(op_sent.client_id < 10)
+                        printf("client 0%d unsubscribed to %s\n", op_received.client_id, op_received.topic);
+                    else
+                        printf("client %d unsubscribed to %s\n", op_received.client_id, op_received.topic);
                     break;
                 }
             }
@@ -191,7 +203,10 @@ struct BlogOperation process_client_op(struct BlogOperation op_received, struct 
                 remove_client_from_topic(op_received.client_id, &(s_data->topics[i]));
 
             op_sent.operation_type = DISCONNECT;
-            printf("client %d was disconnected\n", op_received.client_id);
+            if(op_sent.client_id < 10)
+                printf("client 0%d was disconnected\n", op_received.client_id);
+            else
+                printf("client %d was disconnected\n", op_received.client_id);
             break;
     }
     return op_sent;
