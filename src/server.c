@@ -264,7 +264,7 @@ int main(int argc, char *argv[])
     server_data.topics_count = 0;
     init_client_array(server_data.clients, NUM_CLIENTS);
 
-    struct thread_info thread_info[10];
+    struct thread_info thread_info[NUM_CLIENTS];
 
     while (1)
     {
